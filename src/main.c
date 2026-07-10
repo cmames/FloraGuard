@@ -2,31 +2,43 @@
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 #include <esp_log.h>
-#include "soil_moisture.h" 
+#include <nvs_flash.h>
+#include "soil_moisture.h"
+#include "network_manager.h"
+
 
 #ifdef RUN_CALIBRATION_MODE
 #include "calibration.h"
-#endif
+#endif  
 
 static const char *TAG = "MAIN";
 
 void rhodoshield(void) 
 {
-    // Initialize the soil moisture component
+    // Initialize NVS (Required by the WiFi stack partition layer)
+    esp_err_t ret = nvs_flash_init();
+    if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
+        ESP_ERROR_CHECK(nvs_flash_erase());
+        ret = nvs_flash_init();
+    }
+    ESP_ERROR_CHECK(ret);
+
+    // Initialize soil moisture peripheral interface
     if (soil_moisture_init() != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to initialize soil moisture component.");
+        ESP_LOGE(TAG, "Aborting: Soil moisture layer setup failed.");
         return;
     }
 
-    ESP_LOGI(TAG, "RhodoShield firmware initialized successfully.");
+    // Launch complete network stack (WiFi + mDNS + HTTP Server)
+    if (network_manager_start(WIFI_SSID, WIFI_PASSWORD, MDNS_HOSTNAME) != ESP_OK) {
+        ESP_LOGE(TAG, "Network layer failed to start. Device running offline.");
+    }
 
+    ESP_LOGI(TAG, "RhodoShield firmware fully operational.");
+
+    // Simple background heartbeat task
     while (1) {
-        int raw = soil_moisture_get_raw();
-        float moisture = soil_moisture_get_percentage();
-
-        ESP_LOGI(TAG, "Soil Status -> Raw ADC: %d | Moisture: %.2f%%", raw, moisture);
-
-        vTaskDelay(pdMS_TO_TICKS(2000));
+        vTaskDelay(pdMS_TO_TICKS(10000));
     }
 }
 

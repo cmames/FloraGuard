@@ -10,12 +10,6 @@ static const char *TAG = "SOIL_MOISTURE";
 #define MOISTURE_ADC_CHANNEL     ADC_CHANNEL_6 // GPIO34
 #define MOISTURE_ADC_UNIT        ADC_UNIT_1
 
-// Soil moisture calibration constants determined empirically
-// To get this values run the component moisture_calibration
-// Min value corresponds to maximum water saturation (100% wet)
-// Max value corresponds to open air exposure (0% dry)
-#define MOISTURE_ADC_MIN_WET    493
-#define MOISTURE_ADC_MAX_DRY    2914
 
 // Oversampling configuration for software noise reduction
 #define OVERSAMPLING_SAMPLES    8

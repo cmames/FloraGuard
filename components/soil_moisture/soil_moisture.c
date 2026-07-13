@@ -6,11 +6,6 @@
 
 static const char *TAG = "SOIL_MOISTURE";
 
-// Hardware configuration
-#define MOISTURE_ADC_CHANNEL     ADC_CHANNEL_6 // GPIO34
-#define MOISTURE_ADC_UNIT        ADC_UNIT_1
-
-
 // Oversampling configuration for software noise reduction
 #define OVERSAMPLING_SAMPLES    8
 

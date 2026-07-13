@@ -35,14 +35,14 @@ static void automation_task(void *pvParameters)
         }
 
         // 2. Agricultural control thresholds
-        if (moisture_pct > 80.0f) {
-            ESP_LOGW(TAG, "Warning: Soil moisture anomaly (>80%%): %.2f%%", moisture_pct);
+        if (moisture_pct > SOIL_MOISTURE_CRITICAL_HIGH) {
+            ESP_LOGW(TAG, "Warning: Soil moisture anomaly (>%.0f%%): %.2f%%", SOIL_MOISTURE_CRITICAL_HIGH, moisture_pct);
             actuator_set_pump(false);
             actuator_set_led_red(true);
             actuator_set_led_yellow(false);
         } 
-        else if (moisture_pct < 20.0f) {
-            ESP_LOGW(TAG, "Alert: Soil dry (<20%%): %.2f%%", moisture_pct);
+        else if (moisture_pct < SOIL_MOISTURE_CRITICAL_LOW) {
+            ESP_LOGW(TAG, "Alert: Soil dry (<%.0f%%): %.2f%%", SOIL_MOISTURE_CRITICAL_LOW, moisture_pct);
             actuator_set_led_red(false);
             actuator_set_led_yellow(true);
 
@@ -50,10 +50,10 @@ static void automation_task(void *pvParameters)
             if (is_daylight_hours()) {
                 ESP_LOGI(TAG, "Daylight active. Starting a 1-minute watering cycle...");
                 actuator_set_pump(true);
-                vTaskDelay(pdMS_TO_TICKS(10000)); // 10s watering
+                vTaskDelay(pdMS_TO_TICKS(IRRIGATION_PUMP_ON_MS)); // watering
                 
                 actuator_set_pump(false);
-                vTaskDelay(pdMS_TO_TICKS(50000)); // 50s infiltration
+                vTaskDelay(pdMS_TO_TICKS(IRRIGATION_PUMP_OFF_MS)); // infiltration
                 continue;
             } else {
                 ESP_LOGI(TAG, "Nighttime restriction active. Postponing irrigation.");

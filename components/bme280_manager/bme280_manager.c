@@ -6,9 +6,6 @@
 static const char *TAG = "BME280_MANAGER";
 
 // Hardware routing configurations (Right-side accessible pins)
-#define I2C_MASTER_SDA_IO           25
-#define I2C_MASTER_SCL_IO           26
-#define I2C_MASTER_NUM              I2C_NUM_0
 #define I2C_MASTER_FREQ_HZ          100000
 
 static i2c_bus_handle_t i2c_bus = NULL;

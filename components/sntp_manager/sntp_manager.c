@@ -17,7 +17,7 @@ esp_err_t initialize_sntp(void)
     esp_sntp_init();
 
     // Configure timezone explicitly for France (Paris) handling DST automatically
-    setenv("TZ", "CET-1CEST,M3.5.0,M10.5.0/3", 1);
+    setenv("TZ", SNTP_TIMEZONE, 1);
     tzset();
 
     return ESP_OK;
@@ -40,5 +40,5 @@ bool is_daylight_hours(void)
     ESP_LOGI(TAG, "Current localized time: %02d:%02d:%02d", timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
     
     // Agricultural authorization slot: 08:00 to 19:59
-    return (timeinfo.tm_hour >= 8 && timeinfo.tm_hour < 20);
+    return (timeinfo.tm_hour >= DAYLIGHT_START_HOUR && timeinfo.tm_hour < DAYLIGHT_END_HOUR);
 }

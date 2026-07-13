@@ -20,7 +20,6 @@ static const char *TAG = "NET_MANAGER";
 #define WIFI_FAIL_BIT      BIT1
 static EventGroupHandle_t s_wifi_event_group;
 static int s_retry_num = 0;
-#define MAX_RETRY      5
 
 static httpd_handle_t server_handle = NULL;
 
@@ -30,10 +29,10 @@ static void wifi_event_handler(void* arg, esp_event_base_t event_base, int32_t e
     if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_START) {
         esp_wifi_connect();
     } else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_DISCONNECTED) {
-        if (s_retry_num < MAX_RETRY) {
+        if (s_retry_num < WIFI_MAX_RETRY) {
             esp_wifi_connect();
             s_retry_num++;
-            ESP_LOGW(TAG, "Retrying connection to the AP (%d/%d)", s_retry_num, MAX_RETRY);
+            ESP_LOGW(TAG, "Retrying connection to the AP (%d/%d)", s_retry_num, WIFI_MAX_RETRY);
         } else {
             xEventGroupSetBits(s_wifi_event_group, WIFI_FAIL_BIT);
         }
@@ -74,7 +73,7 @@ static esp_err_t status_get_handler(httpd_req_t *req)
 
 // URI structure mapping for the HTTP server
 static const httpd_uri_t status_uri = {
-    .uri       = "/api/status",
+    .uri       = HTTP_API_URI,
     .method    = HTTP_GET,
     .handler   = status_get_handler,
     .user_ctx  = NULL

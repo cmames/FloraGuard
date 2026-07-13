@@ -4,12 +4,6 @@
 
 static const char *TAG = "ACTUATOR_MANAGER";
 
-// Strict GPIO mapping based on right-side accessible header pins
-#define GPIO_PUMP_OUTPUT        27
-#define GPIO_LED_BLUE_OUTPUT    14
-#define GPIO_LED_YELLOW_OUTPUT  12
-#define GPIO_LED_RED_OUTPUT     13
-
 esp_err_t actuator_manager_init(void)
 {
     // Configure all 4 pins as push-pull outputs

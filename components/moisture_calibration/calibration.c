@@ -7,9 +7,6 @@
 
 static const char *TAG = "MOISTURE_CALIB";
 
-// GPIO34 corresponds to ADC Channel 4 on ADC1 for ESP32 DevKitC
-#define CALIB_ADC_CHANNEL     ADC_CHANNEL_6 
-#define CALIB_ADC_UNIT        ADC_UNIT_1
 #define SAMPLE_DELAY_MS       500
 
 void run_calibration(void)
@@ -17,7 +14,7 @@ void run_calibration(void)
     // 1. Configure ADC Unit
     adc_oneshot_unit_handle_t adc1_handle;
     adc_oneshot_unit_init_cfg_t init_config1 = {
-        .unit_id = CALIB_ADC_UNIT,
+        .unit_id = MOISTURE_ADC_UNIT,
         .clk_src = ADC_DIGI_CLK_SRC_DEFAULT,
     };
     ESP_ERROR_CHECK(adc_oneshot_new_unit(&init_config1, &adc1_handle));
@@ -27,7 +24,7 @@ void run_calibration(void)
         .bitwidth = ADC_BITWIDTH_DEFAULT, // 12 bits resolution (0 - 4095)
         .atten = ADC_ATTEN_DB_12,
     };
-    ESP_ERROR_CHECK(adc_oneshot_config_channel(adc1_handle, CALIB_ADC_CHANNEL, &config));
+    ESP_ERROR_CHECK(adc_oneshot_config_channel(adc1_handle, MOISTURE_ADC_CHANNEL, &config));
 
     ESP_LOGI(TAG, "Moisture sensor calibration tool initialized.");
     ESP_LOGI(TAG, "--------------------------------------------------");
@@ -41,7 +38,7 @@ void run_calibration(void)
 
     while (1) {
         // Read raw analog value
-        ESP_ERROR_CHECK(adc_oneshot_read(adc1_handle, CALIB_ADC_CHANNEL, &raw_output));
+        ESP_ERROR_CHECK(adc_oneshot_read(adc1_handle, MOISTURE_ADC_CHANNEL, &raw_output));
         
         if (raw_output>max) max=raw_output;
         if (raw_output<min) min=raw_output;

@@ -18,24 +18,50 @@ static httpd_handle_t server_handle = NULL;
 static esp_err_t status_get_handler(httpd_req_t *req)
 {
     actuator_set_led_blue(false);
-    char json_response[128];
     
-    // Fetch live data from our soil_moisture component API
     int raw_adc = soil_moisture_get_raw();
     float percentage = soil_moisture_get_percentage();
     
-    // Fetch weather metrics
     float temp = 0.0f, hum = 0.0f, press = 0.0f;
     bme280_manager_read(&temp, &hum, &press);
     
-    // Format data into a standard JSON payload
-    snprintf(json_response, sizeof(json_response),
-             "{\"soil\":{\"raw\":%d,\"moisture_pct\":%.2f},\"environment\":{\"temperature_c\":%.2f,\"humidity_pct\":%.2f,\"pressure_hpa\":%.2f}}",
+    // Allocate a buffer safe enough to hold metrics + the 5 formatted log lines
+    const size_t json_buffer_size = 768;
+    char *json_response = malloc(json_buffer_size);
+    if (json_response == NULL) {
+        actuator_set_led_blue(true);
+        return ESP_ERR_NO_MEM;
+    }
+    
+    // 1. Format core sensor values
+    int written = snprintf(json_response, json_buffer_size,
+             "{\"soil\":{\"raw\":%d,\"moisture_pct\":%.2f},"
+             "\"environment\":{\"temperature_c\":%.2f,\"humidity_pct\":%.2f,\"pressure_hpa\":%.2f},"
+             "\"logs\":[",
              raw_adc, percentage, temp, hum, press);
-    // Set HTTP headers and send response
+
+    // 2. Append the log history strings as a raw JSON array
+    size_t log_size = log_manager_get_history_size();
+    for (size_t i = 0; i < log_size; i++) {
+        const char *line = log_manager_get_log(i);
+        if (line != NULL && written < json_buffer_size) {
+            // Check if it's the last element to handle the trailing comma cleanly
+            const char *separator = (i == log_size - 1) ? "" : ",";
+            written += snprintf(json_response + written, json_buffer_size - written,
+                                "\"%s\"%s", line, separator);
+        }
+    }
+
+    // 3. Close JSON payload
+    if (written < json_buffer_size) {
+        snprintf(json_response + written, json_buffer_size - written, "]}");
+    }
+
     httpd_resp_set_type(req, "application/json");
     httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
     httpd_resp_send(req, json_response, HTTPD_RESP_USE_STRLEN);
+    
+    free(json_response);
     actuator_set_led_blue(true);
     
     return ESP_OK;
@@ -45,89 +71,34 @@ static esp_err_t status_get_handler(httpd_req_t *req)
 static esp_err_t root_get_handler(httpd_req_t *req)
 {
     actuator_set_led_blue(false);
-    
-    float percentage = soil_moisture_get_percentage();
-    float temp = 0.0f, hum = 0.0f, press = 0.0f;
-    bme280_manager_read(&temp, &hum, &press);
 
-    const size_t response_buffer_size = 4096; // Expanded safely for dynamic loop processing
-    char *html_response = malloc(response_buffer_size);
-    if (html_response == NULL) {
+    // Open the static HTML file from our mounted partition
+    FILE *f = fopen("/spiffs/index.html", "r");
+    if (f == NULL) {
+        LOG_ERROR(TAG, "Failed to open index.html from storage.");
+        httpd_resp_send_err(req, HTTPD_404_NOT_FOUND, "Dashboard File Not Found");
         actuator_set_led_blue(true);
-        return ESP_ERR_NO_MEM;
-    }
-
-    // 1. Build HTML Header and cards structure
-    int written = snprintf(html_response, response_buffer_size,
-        "<!DOCTYPE html><html><head><meta charset=\"utf-8\">"
-        "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">"
-        "<title>FloraGuard Dashboard</title>"
-        "<style>"
-        "body { font-family: system-ui, -apple-system, sans-serif; background: #f0f4f8; color: #102a43; padding: 20px; text-align: center; }"
-        ".container { display: flex; flex-wrap: wrap; justify-content: center; max-width: 800px; margin: 0 auto; }"
-        ".card { background: white; padding: 24px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); text-align: left; width: 280px; margin: 15px; border-top: 5px solid #243b53; }"
-        ".card.soil { border-top-color: #0b69a3; }"
-        ".card.env { border-top-color: #0f8066; }"
-        ".card.logs { width: 620px; border-top-color: #486581; }"
-        "h1 { color: #0f2942; font-weight: 700; margin-bottom: 5px; }"
-        "h2 { margin-top: 0; color: #334e68; font-size: 1.3em; }"
-        ".metric { font-size: 1.1em; margin: 12px 0; display: flex; justify-content: space-between; }"
-        ".val { font-weight: bold; color: #0b69a3; }"
-        ".env .val { color: #0f8066; }"
-        ".log-entry { font-family: monospace; background: #f8fafc; padding: 8px 12px; border-radius: 6px; border-left: 4px solid #627d98; font-size: 0.9em; word-break: break-all; text-align: left; }"
-        ".log-entry.info { border-left-color: #10b981; background: #ecfdf5; color: #065f46; }"
-        ".log-entry.warn { border-left-color: #f59e0b; background: #fffbeb; color: #92400e; }"
-        ".log-entry.error { border-left-color: #ef4444; background: #fef2f2; color: #991b1b; }"
-        ".footer { margin-top: 35px; font-size: 0.85em; color: #627d98; }"
-        "</style></head><body>"
-        "<h1>FloraGuard Dashboard</h1>"
-        "<div class=\"container\">"
-        "<div class=\"card soil\">"
-        "<h2>Humidit&eacute; du sol</h2>"
-        "<div class=\"metric\"><span>Pourcentage :</span><span class=\"val\">%.2f%%</span></div>"
-        "</div>"
-        "<div class=\"card env\">"
-        "<h2>Environnement</h2>"
-        "<div class=\"metric\"><span>Temp&eacute;rature :</span><span class=\"val\">%.2f &deg;C</span></div>"
-        "<div class=\"metric\"><span>Humidit&eacute; :</span><span class=\"val\">%.2f%%</span></div>"
-        "<div class=\"metric\"><span>Pression :</span><span class=\"val\">%.2f hPa</span></div>"
-        "</div>"
-        "<div class=\"card logs\">"
-        "<h2>Derniers &eacute;v&eacute;nements</h2>",
-        percentage, temp, hum, press);
-
-    // 2. Dynamically inject log blocks from log_manager configuration
-    size_t log_size = log_manager_get_history_size();
-    for (size_t i = 0; i < log_size; i++) {
-        const char *line = log_manager_get_log(i);
-        if (line != NULL && written < response_buffer_size) {
-        const char *log_class = "";
-            if (strstr(line, "[INF]") != NULL) {
-                log_class = "info";
-            } else if (strstr(line, "[WRN]") != NULL) {
-                log_class = "warn";
-            } else if (strstr(line, "[ERR]") != NULL) {
-                log_class = "error";
-            }
-
-            written += snprintf(html_response + written, response_buffer_size - written,
-                                "<div class=\"log-entry %s\">&bull; %s</div>", log_class, line);        }
-        
-    }
-
-    // 3. Inject closing footer tags and script payload
-    if (written < response_buffer_size) {
-        snprintf(html_response + written, response_buffer_size - written,
-            "</div></div>"
-            "<div class=\"footer\">FloraGuard &bull; C. Mames &bull; GPL v3</div>"
-            "<script>setTimeout(function(){ location.reload(); }, 5000);</script>"
-            "</body></html>");
+        return ESP_FAIL;
     }
 
     httpd_resp_set_type(req, "text/html");
-    httpd_resp_send(req, html_response, HTTPD_RESP_USE_STRLEN);
+
+    // Stream the file chunk by chunk to maintain a near-zero RAM footprint
+    char chunk[256];
+    size_t read_bytes;
+    while ((read_bytes = fread(chunk, 1, sizeof(chunk), f)) > 0) {
+        if (httpd_resp_send_chunk(req, chunk, read_bytes) != ESP_OK) {
+            fclose(f);
+            LOG_ERROR(TAG, "Abort: Critical error during HTML chunk streaming.");
+            actuator_set_led_blue(true);
+            return ESP_FAIL;
+        }
+    }
     
-    free(html_response);
+    // Close file descriptor and signal end of response chunks
+    fclose(f);
+    httpd_resp_send_chunk(req, NULL, 0);
+    
     actuator_set_led_blue(true);
     return ESP_OK;
 }

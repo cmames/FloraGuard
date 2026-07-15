@@ -49,7 +49,7 @@ float soil_moisture_get_percentage(void)
     for (int i = 0; i < OVERSAMPLING_SAMPLES; i++) {
         raw_reading = soil_moisture_get_raw();
         accumulated_raw += raw_reading;
-        vTaskDelay(pdMS_TO_TICKS(10));
+        vTaskDelay(pdMS_TO_TICKS(20));
     }
     
     float mean_raw = (float)accumulated_raw / OVERSAMPLING_SAMPLES;

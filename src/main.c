@@ -73,7 +73,7 @@ static void automation_task(void *pvParameters)
     }
 }
 
-void rhodoshield(void) 
+void floraguard(void) 
 {
     if (actuator_manager_init() != ESP_OK) {
         ESP_LOGE(TAG, "Aborting: Actuator framework setup failed.");
@@ -123,7 +123,7 @@ void rhodoshield(void)
         }
     }
 
-    ESP_LOGI(TAG, "RhodoShield firmware fully operational. Launching automation scheduler...");
+    ESP_LOGI(TAG, "floraguard firmware fully operational. Launching automation scheduler...");
 
     xTaskCreatePinnedToCore(automation_task, "automation_task", 4096, NULL, 5, NULL, 1);
 
@@ -139,6 +139,6 @@ void app_main(void)
     run_calibration();
 #else
     ESP_LOGI("ROUTER", "Standard application mode starting...");
-    rhodoshield();
+    floraguard();
 #endif
 }

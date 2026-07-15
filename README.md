@@ -1,4 +1,4 @@
-# RhodoShield
+# floraguard
 
 An autonomous, modular, and industrial-grade smart irrigation system powered by an ESP32 and ESP-IDF. Specifically designed to monitor and optimize water delivery for a Rhododendron based on soil moisture kinetics and microclimate atmospheric telemetry.
 
@@ -10,7 +10,7 @@ An autonomous, modular, and industrial-grade smart irrigation system powered by 
 - **Agricultural Controls**: Custom background FreeRTOS control loops ensuring the plant stays within safe moisture thresholds while preventing root suffocation.
 - **Horticultural Night Restriction**: Localized SNTP time harvesting to enforce daylight-only watering schedules, respecting plant nutrient absorption and respiration cycles.
 - **REST JSON API**: Live embedded HTTP server exposing raw and processed operational metrics over local networks.
-- **mDNS Network Resolution**: Local discovery accessible via standard zero-config hostnames (`http://rhodoshield.local`).
+- **mDNS Network Resolution**: Local discovery accessible via standard zero-config hostnames (`http://floraguard.local`).
 - **Power-On Self-Test (POST)**: One-second diagnostic hardware sequence flashing all notification LEDs on boot.
 
 ---
@@ -40,7 +40,7 @@ The custom sub-surface delivery nozzle is located at the root of the project: `s
 ## Software Directory Structure
 
 ```text
-RhodoShield/
+floraguard/
 ├── components/
 │   ├── actuator_manager/   # GPIO Push-Pull LED and Relay handlers
 │   ├── bme280_manager/     # I2C abstraction and Bosch sensor interface
@@ -98,13 +98,13 @@ To clear cache files, download managed package extensions (espressif/mdns and es
 
     ```Bash
     rm -rf .pio
-    pio run -e rhodoshield -t upload && pio device monitor
+    pio run -e floraguard -t upload && pio device monitor
     ```
 ## Network API Specification
 Once initialized and bound to your local area network, the device responds to automated REST harvesting tasks.
 
 ### Fetch Live Status
-- URL: http://rhodoshield.local/api/status or http://<your_assigned_ip>/api/status
+- URL: http://floraguard.local/api/status or http://<your_assigned_ip>/api/status
 - Method: GET
 - Response Payload (application/json):
 

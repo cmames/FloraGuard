@@ -50,7 +50,7 @@ static esp_err_t root_get_handler(httpd_req_t *req)
     float temp = 0.0f, hum = 0.0f, press = 0.0f;
     bme280_manager_read(&temp, &hum, &press);
 
-    const size_t response_buffer_size = 3072; // Expanded safely for dynamic loop processing
+    const size_t response_buffer_size = 4096; // Expanded safely for dynamic loop processing
     char *html_response = malloc(response_buffer_size);
     if (html_response == NULL) {
         actuator_set_led_blue(true);
@@ -74,7 +74,10 @@ static esp_err_t root_get_handler(httpd_req_t *req)
         ".metric { font-size: 1.1em; margin: 12px 0; display: flex; justify-content: space-between; }"
         ".val { font-weight: bold; color: #0b69a3; }"
         ".env .val { color: #0f8066; }"
-        ".log-entry { font-family: monospace; background: #f8fafc; padding: 8px 12px; border-radius: 6px; margin: 6px 0; border-left: 3px solid #627d98; font-size: 0.9em; word-break: break-all; }"
+        ".log-entry { font-family: monospace; background: #f8fafc; padding: 8px 12px; border-radius: 6px; border-left: 4px solid #627d98; font-size: 0.9em; word-break: break-all; text-align: left; }"
+        ".log-entry.info { border-left-color: #10b981; background: #ecfdf5; color: #065f46; }"
+        ".log-entry.warn { border-left-color: #f59e0b; background: #fffbeb; color: #92400e; }"
+        ".log-entry.error { border-left-color: #ef4444; background: #fef2f2; color: #991b1b; }"
         ".footer { margin-top: 35px; font-size: 0.85em; color: #627d98; }"
         "</style></head><body>"
         "<h1>FloraGuard Dashboard</h1>"
@@ -98,9 +101,18 @@ static esp_err_t root_get_handler(httpd_req_t *req)
     for (size_t i = 0; i < log_size; i++) {
         const char *line = log_manager_get_log(i);
         if (line != NULL && written < response_buffer_size) {
+        const char *log_class = "";
+            if (strstr(line, "[INF]") != NULL) {
+                log_class = "info";
+            } else if (strstr(line, "[WRN]") != NULL) {
+                log_class = "warn";
+            } else if (strstr(line, "[ERR]") != NULL) {
+                log_class = "error";
+            }
+
             written += snprintf(html_response + written, response_buffer_size - written,
-                                "<div class=\"log-entry\">&bull; %s</div>", line);
-        }
+                                "<div class=\"log-entry %s\">&bull; %s</div>", log_class, line);        }
+        
     }
 
     // 3. Inject closing footer tags and script payload

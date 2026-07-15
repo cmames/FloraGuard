@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
-#include <esp_log.h>
+#include "log_manager.h"
 #include <esp_adc/adc_oneshot.h>
 
 static const char *TAG = "MOISTURE_CALIB";
@@ -27,11 +27,11 @@ void run_calibration(void)
     };
     ESP_ERROR_CHECK(adc_oneshot_config_channel(adc1_handle, MOISTURE_ADC_CHANNEL, &config));
 
-    ESP_LOGI(TAG, "Moisture sensor calibration tool initialized.");
-    ESP_LOGI(TAG, "--------------------------------------------------");
-    ESP_LOGI(TAG, "1. Leave the sensor dry in the air to get MAX_VAL (Dry value).");
-    ESP_LOGI(TAG, "2. Dip the sensor in water up to the max line to get MIN_VAL (Wet value).");
-    ESP_LOGI(TAG, "--------------------------------------------------");
+    LOG_INFO(TAG, "Moisture sensor calibration tool initialized.");
+    LOG_INFO(TAG, "--------------------------------------------------");
+    LOG_INFO(TAG, "1. Leave the sensor dry in the air to get MAX_VAL (Dry value).");
+    LOG_INFO(TAG, "2. Dip the sensor in water up to the max line to get MIN_VAL (Wet value).");
+    LOG_INFO(TAG, "--------------------------------------------------");
 
     int raw_output;
     int min=4095;
@@ -44,7 +44,7 @@ void run_calibration(void)
         if (raw_output>max) max=raw_output;
         if (raw_output<min) min=raw_output;
 
-        ESP_LOGI(TAG, "Raw ADC Value: %d [ %d , %d ]", raw_output, min, max);
+        LOG_INFO(TAG, "Raw ADC Value: %d [ %d , %d ]", raw_output, min, max);
         
         vTaskDelay(pdMS_TO_TICKS(SAMPLE_DELAY_MS));
     }

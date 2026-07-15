@@ -4,13 +4,13 @@
 #include <time.h>
 #include <sys/time.h>
 #include <esp_sntp.h>
-#include <esp_log.h>
+#include "log_manager.h"
 
 static const char *TAG = "SNTP_MANAGER";
 
 esp_err_t initialize_sntp(void)
 {
-    ESP_LOGI(TAG, "Initializing SNTP client targeting pool.ntp.org...");
+    LOG_INFO(TAG, "Initializing SNTP client targeting pool.ntp.org...");
     
     // Configure operating mode and associate reference server
     esp_sntp_setoperatingmode(SNTP_OPMODE_POLL);
@@ -34,11 +34,11 @@ bool is_daylight_hours(void)
 
     // If the system year is lower than 2026, NTP synchronization has not occurred yet
     if (timeinfo.tm_year < (2026 - 1900)) {
-        ESP_LOGW(TAG, "NTP time synchronization pending. Night restriction active by default.");
+        LOG_WARN(TAG, "NTP time synchronization pending. Night restriction active by default.");
         return false;
     }
 
-    ESP_LOGI(TAG, "Current localized time: %02d:%02d:%02d", timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
+    LOG_INFO(TAG, "Current localized time: %02d:%02d:%02d", timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
     
     // Agricultural authorization slot: 08:00 to 19:59
     return (timeinfo.tm_hour >= DAYLIGHT_START_HOUR && timeinfo.tm_hour < DAYLIGHT_END_HOUR);

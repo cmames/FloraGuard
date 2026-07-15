@@ -6,7 +6,7 @@
 #include <freertos/event_groups.h>
 #include <esp_wifi.h>
 #include <esp_event.h>
-#include <esp_log.h>
+#include "log_manager.h"
 #include <nvs_flash.h>
 #include <mdns.h>
 
@@ -27,13 +27,13 @@ static void wifi_event_handler(void* arg, esp_event_base_t event_base, int32_t e
         if (s_retry_num < WIFI_MAX_RETRY) {
             esp_wifi_connect();
             s_retry_num++;
-            ESP_LOGW(TAG, "Retrying connection to the AP (%d/%d)", s_retry_num, WIFI_MAX_RETRY);
+            LOG_WARN(TAG, "Retrying connection to the AP (%d/%d)", s_retry_num, WIFI_MAX_RETRY);
         } else {
             xEventGroupSetBits(s_wifi_event_group, WIFI_FAIL_BIT);
         }
     } else if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP) {
         ip_event_got_ip_t* event = (ip_event_got_ip_t*) event_data;
-        ESP_LOGI(TAG, "Successfully assigned IP: " IPSTR, IP2STR(&event->ip_info.ip));
+        LOG_INFO(TAG, "Successfully assigned IP: " IPSTR, IP2STR(&event->ip_info.ip));
         s_retry_num = 0;
         xEventGroupSetBits(s_wifi_event_group, WIFI_CONNECTED_BIT);
     }
@@ -76,21 +76,21 @@ esp_err_t wifi_start(const char *ssid, const char *password, const char *hostnam
     ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config));
     ESP_ERROR_CHECK(esp_wifi_start());
 
-    ESP_LOGI(TAG, "WiFi station initialization completed. Connecting to AP...");
+    LOG_INFO(TAG, "WiFi station initialization completed. Connecting to AP...");
 
     // Block execution until connection is established or permanently failed
     EventBits_t bits = xEventGroupWaitBits(s_wifi_event_group, WIFI_CONNECTED_BIT | WIFI_FAIL_BIT, pdFALSE, pdFALSE, portMAX_DELAY);
 
     if (bits & WIFI_CONNECTED_BIT) {
-        ESP_LOGI(TAG, "Connected to AP SSID: %s", ssid);
+        LOG_INFO(TAG, "Connected to AP SSID: %s", ssid);
         // 5. Initialize and configure mDNS service
         ESP_ERROR_CHECK(mdns_init());
         ESP_ERROR_CHECK(mdns_hostname_set(hostname));
-        ESP_LOGI(TAG, "mDNS responder started. Device accessible via: http://%s.local", hostname);
+        LOG_INFO(TAG, "mDNS responder started. Device accessible via: http://%s.local", hostname);
         mdns_service_add(NULL, "_http", "_tcp", 80, NULL, 0);
         return ESP_OK;
     } else if (bits & WIFI_FAIL_BIT) {
-        ESP_LOGE(TAG, "Failed to connect to SSID: %s", ssid);
+        LOG_ERROR(TAG, "Failed to connect to SSID: %s", ssid);
         return ESP_FAIL;
     }
 

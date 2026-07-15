@@ -1,7 +1,7 @@
 // Copyright (c) 2026 C. Mames - Licensed under the GNU GPL v3
 #include "actuator_manager.h"
 #include <driver/gpio.h>
-#include <esp_log.h>
+#include "log_manager.h"
 
 static const char *TAG = "ACTUATOR_MANAGER";
 
@@ -21,7 +21,7 @@ esp_err_t actuator_manager_init(void)
     
     esp_err_t err = gpio_config(&io_conf);
     if (err != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to configure GPIO configurations.");
+        LOG_ERROR(TAG, "Failed to configure GPIO configurations.");
         return err;
     }
 
@@ -31,14 +31,14 @@ esp_err_t actuator_manager_init(void)
     gpio_set_level(GPIO_LED_YELLOW_OUTPUT, 0);
     gpio_set_level(GPIO_LED_RED_OUTPUT, 0);
 
-    ESP_LOGI(TAG, "Actuators initialized: Pump:27, LED_Blue:14, LED_Yellow:12, LED_Red:13.");
+    LOG_INFO(TAG, "Actuators initialized: Pump:27, LED_Blue:14, LED_Yellow:12, LED_Red:13.");
     return ESP_OK;
 }
 
 void actuator_set_pump(bool enable)
 {
     gpio_set_level(GPIO_PUMP_OUTPUT, enable ? 1 : 0);
-    ESP_LOGD(TAG, "Pump hardware line altered to: %s", enable ? "ON" : "OFF");
+    LOG_DEBUG(TAG, "Pump hardware line altered to: %s", enable ? "ON" : "OFF");
 }
 
 void actuator_set_led_blue(bool enable)

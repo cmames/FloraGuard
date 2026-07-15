@@ -24,7 +24,7 @@ The system utilizes an **ESP32 DevKitC V4** micro-controller. Due to layout rest
 | **Capacitive Moisture Sensor v1.2** | GPIO34 | Analog Input | Mapped to ADC1 Channel 6 |
 | **BME280 SDA** | GPIO25 | I2C Bidirectional | Custom routed Master SDA line |
 | **BME280 SCL** | GPIO26 | I2C Bidirectional | Custom routed Master SCL line |
-| **Water Pump (Relay)** | GPIO27 | Digital Output | High-isolation push-pull output |
+| **Water Pump (MOSFET/Relay)** | GPIO27 | Digital Output | High-isolation push-pull output |
 | **LED Blue** | GPIO14 | Digital Output | Network status and HTTP request heartbeat |
 | **LED Yellow** | GPIO12 | Digital Output | Soil moisture warning indicator (Dry state) |
 | **LED Red** | GPIO13 | Digital Output | Critical error / sensor failure / flooded state |
@@ -45,6 +45,7 @@ floraguard/
 │   ├── actuator_manager/   # GPIO Push-Pull LED and Relay handlers
 │   ├── bme280_manager/     # I2C abstraction and Bosch sensor interface
 │   ├── http_api_manager/   # API HTTP server handlers
+│   ├── log_manager/        # logs and keep history
 │   ├── sntp_manager/       # Posix Timezone DB synchronization layer
 │   ├── soil_moisture/      # Oversampled ADC analog readings
 │   └── wifi_manager/       # WiFi Station and mDNS handlers
@@ -121,6 +122,8 @@ Once initialized and bound to your local area network, the device responds to au
         }
     }
     ```
+### HTTP dashboard
+- URL: http://floraguard.local/ or http://<your_assigned_ip>/
 
 ## License
 This project is open-source and registered under the GNU GPL v3 License. Feel free to fork, adapt, and scale out for your custom botanical arrays.

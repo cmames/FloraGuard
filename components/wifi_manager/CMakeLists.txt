@@ -6,6 +6,6 @@ else()
     idf_component_register(
         SRCS "wifi_manager.c"
         INCLUDE_DIRS "include"
-        REQUIRES esp_wifi esp_event mdns nvs_flash
+        REQUIRES esp_wifi esp_event mdns nvs_flash log_manager
     )
 endif()

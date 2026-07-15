@@ -5,6 +5,7 @@
 #include <esp_log.h>
 #include <nvs_flash.h>
 
+#include "log_manager.h"
 #include "soil_moisture.h"
 #include "bme280_manager.h"
 #include "actuator_manager.h"
@@ -20,7 +21,7 @@ static const char *TAG = "MAIN";
 
 static void automation_task(void *pvParameters)
 {
-    ESP_LOGI(TAG, "Control loop automation task started.");
+    LOG_INFO(TAG, "Control loop automation task started.");
 
     while (1) {
         int raw_moisture = soil_moisture_get_raw();
@@ -28,7 +29,7 @@ static void automation_task(void *pvParameters)
 
         // 1. Hardware sensor safety check
         if (raw_moisture <= 0 || raw_moisture >= 4095) {
-            ESP_LOGE(TAG, "Critical: Soil moisture sensor fault detected (Raw: %d)!", raw_moisture);
+            LOG_ERROR(TAG, "Critical: Soil moisture sensor fault detected (Raw: %d)!", raw_moisture);
             actuator_set_pump(false);
             actuator_set_led_yellow(false);
             actuator_set_led_red(true);
@@ -38,19 +39,19 @@ static void automation_task(void *pvParameters)
 
         // 2. Agricultural control thresholds
         if (moisture_pct > SOIL_MOISTURE_CRITICAL_HIGH) {
-            ESP_LOGW(TAG, "Warning: Soil moisture anomaly (>%.0f%%): %.2f%%", SOIL_MOISTURE_CRITICAL_HIGH, moisture_pct);
+            LOG_WARN(TAG, "Warning: Soil moisture anomaly (>%.0f%%): %.2f%%", SOIL_MOISTURE_CRITICAL_HIGH, moisture_pct);
             actuator_set_pump(false);
             actuator_set_led_red(true);
             actuator_set_led_yellow(false);
         } 
         else if (moisture_pct < SOIL_MOISTURE_CRITICAL_LOW) {
-            ESP_LOGW(TAG, "Alert: Soil dry (<%.0f%%): %.2f%%", SOIL_MOISTURE_CRITICAL_LOW, moisture_pct);
+            LOG_WARN(TAG, "Alert: Soil dry (<%.0f%%): %.2f%%", SOIL_MOISTURE_CRITICAL_LOW, moisture_pct);
             actuator_set_led_red(false);
             actuator_set_led_yellow(true);
 
             // Conditional validation using our sntp_manager API
             if (is_daylight_hours()) {
-                ESP_LOGI(TAG, "Daylight active. Starting a 1-minute watering cycle...");
+                LOG_INFO(TAG, "Daylight active. Starting a 1-minute watering cycle...");
                 actuator_set_pump(true);
                 vTaskDelay(pdMS_TO_TICKS(IRRIGATION_PUMP_ON_MS)); // watering
                 
@@ -58,7 +59,7 @@ static void automation_task(void *pvParameters)
                 vTaskDelay(pdMS_TO_TICKS(IRRIGATION_PUMP_OFF_MS)); // infiltration
                 continue;
             } else {
-                ESP_LOGI(TAG, "Nighttime restriction active. Postponing irrigation.");
+                LOG_INFO(TAG, "Nighttime restriction active. Postponing irrigation.");
                 actuator_set_pump(false);
             }
         } 
@@ -75,8 +76,12 @@ static void automation_task(void *pvParameters)
 
 void floraguard(void) 
 {
+    // Initialize the dynamic log buffer to hold the 5 last lines
+    ESP_ERROR_CHECK(log_manager_init(5));
+    LOG_INFO(TAG, "FloraGuard logs layer dynamic initialization successful.");
+    
     if (actuator_manager_init() != ESP_OK) {
-        ESP_LOGE(TAG, "Aborting: Actuator framework setup failed.");
+        LOG_ERROR(TAG, "Aborting: Actuator framework setup failed.");
         return;
     }
 
@@ -97,21 +102,21 @@ void floraguard(void)
     ESP_ERROR_CHECK(ret);
 
     if (soil_moisture_init() != ESP_OK) {
-        ESP_LOGE(TAG, "Aborting: Soil moisture hardware setup failed.");
+        LOG_ERROR(TAG, "Aborting: Soil moisture hardware setup failed.");
         return;
     }
 
     if (bme280_manager_init() != ESP_OK) {
-        ESP_LOGW(TAG, "BME280 setup failed. Running without atmospheric metrics.");
+        LOG_WARN(TAG, "BME280 setup failed. Running without atmospheric metrics.");
     }
 
     if (wifi_start(WIFI_SSID, WIFI_PASSWORD, MDNS_HOSTNAME) != ESP_OK) {
-        ESP_LOGE(TAG, "Network layer failed to start. Running local mode.");
+        LOG_ERROR(TAG, "Network layer failed to start. Running local mode.");
     } else {
         actuator_set_led_blue(true);
         initialize_sntp();
         if (api_webserver_start() != ESP_OK) {
-            ESP_LOGE(TAG, "Critical: Failed to launch local REST API. Web services offline.");
+            LOG_ERROR(TAG, "Critical: Failed to launch local REST API. Web services offline.");
             for(int i=0;i<5;i++) {
                 actuator_set_led_blue(false);
                 actuator_set_led_red(true);
@@ -123,7 +128,7 @@ void floraguard(void)
         }
     }
 
-    ESP_LOGI(TAG, "floraguard firmware fully operational. Launching automation scheduler...");
+    LOG_INFO(TAG, "floraguard firmware fully operational. Launching automation scheduler...");
 
     xTaskCreatePinnedToCore(automation_task, "automation_task", 4096, NULL, 5, NULL, 1);
 
@@ -135,10 +140,10 @@ void floraguard(void)
 void app_main(void)
 {
 #ifdef RUN_CALIBRATION_MODE
-    ESP_LOGW("ROUTER", "Calibration mode activated.");
+    LOG_WARN("ROUTER", "Calibration mode activated.");
     run_calibration();
 #else
-    ESP_LOGI("ROUTER", "Standard application mode starting...");
+    LOG_INFO("ROUTER", "Standard application mode starting...");
     floraguard();
 #endif
 }

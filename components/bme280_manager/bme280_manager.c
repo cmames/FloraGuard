@@ -1,6 +1,6 @@
 // Copyright (c) 2026 C. Mames - Licensed under the GNU GPL v3
 #include "bme280_manager.h"
-#include <esp_log.h>
+#include "log_manager.h"
 #include <driver/i2c.h>
 #include <bme280.h>
 
@@ -28,25 +28,25 @@ esp_err_t bme280_manager_init(void)
     // 2. Create the specialized abstraction I2C bus required by this component version
     i2c_bus = i2c_bus_create(I2C_MASTER_NUM, &conf);
     if (i2c_bus == NULL) {
-        ESP_LOGE(TAG, "Failed to create I2C abstraction bus.");
+        LOG_ERROR(TAG, "Failed to create I2C abstraction bus.");
         return ESP_FAIL;
     }
 
     // 3. Instantiate and initialize the BME280 device layer
     bme280_dev = bme280_create(i2c_bus, BME280_I2C_ADDRESS_DEFAULT);
     if (bme280_dev == NULL) {
-        ESP_LOGE(TAG, "Failed to instantiate BME280 device instance.");
+        LOG_ERROR(TAG, "Failed to instantiate BME280 device instance.");
         return ESP_FAIL;
     }
 
     esp_err_t err = bme280_default_init(bme280_dev);
     if (err != ESP_OK) {
-        ESP_LOGE(TAG, "Sensor hardware self-initialization failed.");
+        LOG_ERROR(TAG, "Sensor hardware self-initialization failed.");
         return err;
     }
 
     is_initialized = true;
-    ESP_LOGI(TAG, "BME280 component driver registered on pins 25/26 successfully.");
+    LOG_INFO(TAG, "BME280 component driver registered on pins 25/26 successfully.");
     return ESP_OK;
 }
 

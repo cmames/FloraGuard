@@ -26,21 +26,35 @@ static esp_err_t status_get_handler(httpd_req_t *req)
     bme280_manager_read(&temp, &hum, &press);
     
     // Allocate a buffer safe enough to hold metrics + the 5 formatted log lines
-    const size_t json_buffer_size = 768;
+    const size_t json_buffer_size = MOISTURE_HISTORY_SIZE*4+1024;
     char *json_response = malloc(json_buffer_size);
     if (json_response == NULL) {
         actuator_set_led_blue(true);
         return ESP_ERR_NO_MEM;
     }
     
-    // 1. Format core sensor values
+    // Format core sensor values
     int written = snprintf(json_response, json_buffer_size,
              "{\"soil\":{\"raw\":%d,\"moisture_pct\":%.2f},"
              "\"environment\":{\"temperature_c\":%.2f,\"humidity_pct\":%.2f,\"pressure_hpa\":%.2f},"
-             "\"logs\":[",
+             "\"moisture_history\":[",
              raw_adc, percentage, temp, hum, press);
 
-    // 2. Append the log history strings as a raw JSON array
+    // Append the soil moisture history
+    for (size_t i = 0; i < MOISTURE_HISTORY_SIZE; i++) {
+        const char *separator = (i == MOISTURE_HISTORY_SIZE - 1) ? "" : ",";
+        if (written < json_buffer_size) {
+            written += snprintf(json_response + written, json_buffer_size - written,
+                                "%d%s", log_manager_get_moisture_sample(i), separator);
+        }
+    }
+
+    // Format logs array
+    if (written < json_buffer_size) {
+        written += snprintf(json_response + written, json_buffer_size - written, "],\"logs\":[");
+    }
+
+    // Append the log history strings as a raw JSON array
     size_t log_size = log_manager_get_history_size();
     for (size_t i = 0; i < log_size; i++) {
         const char *line = log_manager_get_log(i);
@@ -52,7 +66,7 @@ static esp_err_t status_get_handler(httpd_req_t *req)
         }
     }
 
-    // 3. Close JSON payload
+    // Close JSON payload
     if (written < json_buffer_size) {
         snprintf(json_response + written, json_buffer_size - written, "]}");
     }

@@ -9,10 +9,12 @@ static char **log_buffer = NULL;
 static size_t max_history_size = 0;
 static size_t current_log_count = 0;
 static const char *TAG = "LOG_MANAGER";
-
+static uint8_t moisture_history[MOISTURE_HISTORY_SIZE];
 
 esp_err_t log_manager_init(size_t history_size)
 {
+    memset(moisture_history, 0, sizeof(moisture_history));
+
     if (history_size == 0) {
         ESP_LOGE(TAG, "Invalid argument, history size");
         return ESP_ERR_INVALID_ARG;
@@ -92,4 +94,17 @@ void log_manager_write_history(const char *prefix, const char *format, ...)
 
     // Enforce definitive null-termination safety boundary
     latest_slot[LOG_LINE_MAX_LEN - 1] = '\0';
+}
+
+void log_manager_add_moisture_sample(uint8_t percentage) {
+    // Décalage FIFO
+    for (size_t i = 0; i < MOISTURE_HISTORY_SIZE - 1; i++) {
+        moisture_history[i] = moisture_history[i + 1];
+    }
+    moisture_history[MOISTURE_HISTORY_SIZE - 1] = percentage;
+}
+
+uint8_t log_manager_get_moisture_sample(size_t index) {
+    if (index >= MOISTURE_HISTORY_SIZE) return 0;
+        return moisture_history[index];
 }

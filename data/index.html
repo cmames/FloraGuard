@@ -43,32 +43,33 @@
         .log-entry { 
             font-family: monospace; 
             background: #f8fafc; 
-            padding: 8px 12px; 
-            border-radius: 6px; 
-            margin: 6px 0; 
+            padding: 8px; 
+            margin: 0; 
             border-left: 4px solid #627d98; 
             font-size: 0.9em; 
             word-break: break-all; 
             text-align: left; 
         }
         /* Contextual Status Colors mapped by JavaScript client */
-        .log-entry.info { border-left-color: #10b981; background: #ecfdf5; color: #065f46; }
-        .log-entry.warn { border-left-color: #f59e0b; background: #fffbeb; color: #92400e; }
-        .log-entry.error { border-left-color: #ef4444; background: #fef2f2; color: #991b1b; }
+        .log-entry.info { border-color: #10b981; background: #ecfdf5; color: #065f46; }
+        .log-entry.warn { border-color: #f59e0b; background: #fffbeb; color: #92400e; }
+        .log-entry.error { border-color: #ef4444; background: #fef2f2; color: #991b1b; }
         
         .status-badge { font-size: 0.85em; padding: 4px 8px; border-radius: 20px; font-weight: bold; }
         .status-badge.online { background: #d1fae5; color: #065f46; }
         .status-badge.offline { background: #fee2e2; color: #991b1b; }
-        .footer { margin-top: 35px; font-size: 0.85em; color: #627d98; }
+        .footer { font-size: 0.85em; color: #627d98; }
     </style>
 </head>
 <body>
-
-    <h1>FloraGuard Dashboard <span id="connection-status" class="status-badge offline">Hors-ligne</span></h1>
+[WRN] [0000-00-00 00:00:00] NTP time synchronization pending. Night restriction active by default.
+[INF] [2026-07-16 12:10:39] NTP Synchronization successful! Current time: 2026-07-16 12:10:39
+    <h1>FloraGuard Dashboard <span id="connection-status" class="status-badge offline"></span></h1>
     <div class="container">
         <div class="card soil">
             <h2>Humidité du sol</h2>
             <div class="metric"><span>Pourcentage :</span><span id="soil-pct" class="val">-- %</span></div>
+            <canvas id="moisture-chart" width="280" height="60" style="border: 1px solid #e2e8f0; margin-top: 15px; border-radius: 6px; background: #f8fafc;"></canvas>
         </div>
 
         <div class="card env">
@@ -92,6 +93,51 @@
         // Target API Endpoint matching your network configuration
         const API_URL = '/api/status';
 
+        function drawChart(history) {
+            const canvas = document.getElementById('moisture-chart');
+            const ctx = canvas.getContext('2d');
+            const w = canvas.width;
+            const h = canvas.height;
+
+            // Clear previous canvas
+            ctx.clearRect(0, 0, w, h);
+
+            // Draw background grid (25%, 50%, 75%)
+            ctx.strokeStyle = '#abbdd4';
+            ctx.lineWidth = 0.5;
+            for (let l = 1; l < 4; l++) {
+                let yLine = h - (h * (l * 25) / 100);
+                ctx.beginPath();
+                ctx.moveTo(0, yLine);
+                ctx.lineTo(w, yLine);
+                ctx.stroke();
+            }
+
+            if (!history || history.length === 0) return;
+
+            // Line config
+            ctx.strokeStyle = '#0b69a3';
+            ctx.lineWidth = 2;
+            ctx.lineJoin = 'round';
+            ctx.beginPath();
+
+            // Map history on available width
+            const stepX = w / (history.length - 1);
+
+            history.forEach((val, index) => {
+                const x = index * stepX;
+                const y = h - (h * val / 100);
+
+                if (index === 0) {
+                    ctx.moveTo(x, y);
+                } else {
+                    ctx.lineTo(x, y);
+                }
+            });
+
+            ctx.stroke();
+        }
+
         function updateDashboard() {
             fetch(API_URL)
                 .then(response => {
@@ -99,18 +145,21 @@
                     return response.json();
                 })
                 .then(data => {
-                    // 1. Update Connection Badge
+                    // Update Connection Badge
                     const badge = document.getElementById('connection-status');
                     badge.innerText = "🟢";
                     badge.className = "status-badge online";
 
-                    // 2. Hydrate Sensors Telemetry
+                    // Hydrate Sensors Telemetry
                     document.getElementById('soil-pct').innerText = data.soil.moisture_pct.toFixed(2) + ' %';
                     document.getElementById('env-temp').innerText = data.environment.temperature_c.toFixed(2) + ' °C';
                     document.getElementById('env-hum').innerText = data.environment.humidity_pct.toFixed(2) + ' %';
                     document.getElementById('env-press').innerText = data.environment.pressure_hpa.toFixed(2) + ' hPa';
 
-                    // 3. Process and Color-code Logs array dynamically
+                    // Draw chart
+                    drawChart(data.moisture_history);
+
+                    // Process and Color-code Logs array dynamically
                     const logsContainer = document.getElementById('logs-container');
                     logsContainer.innerHTML = ''; // Clear older views
 

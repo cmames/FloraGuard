@@ -40,6 +40,8 @@ static void automation_task(void *pvParameters)
         int raw_moisture = soil_moisture_get_raw();
         float moisture_pct = soil_moisture_get_percentage();
 
+        log_manager_add_moisture_sample((uint8_t)moisture_pct);
+        
         // Hardware sensor safety check
         if (raw_moisture <= 0 || raw_moisture >= 4095) {
             LOG_ERROR(TAG, "Critical: Soil moisture sensor fault detected (Raw: %d)!", raw_moisture);

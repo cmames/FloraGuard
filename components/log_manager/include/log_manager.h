@@ -5,7 +5,8 @@
 #include <esp_log.h>
 #include "sntp_manager.h"
 
-#define LOG_LINE_MAX_LEN 80
+#define LOG_LINE_MAX_LEN 90
+#define MOISTURE_HISTORY_SIZE 1440
 
 /**
  * @brief Initialize the dynamic log history buffer.
@@ -31,6 +32,16 @@ size_t log_manager_get_history_size(void);
  * @brief Backend variadic formatting function. Do not call directly.
  */
 void log_manager_write_history(const char *prefix, const char *format, ...) __attribute__((format(printf, 2, 3)));
+
+/**
+ * @brief Push a new soil moisture percentage sample into the history.
+ */
+void log_manager_add_moisture_sample(uint8_t percentage);
+
+/**
+ * @brief Get a sample by index.
+ */
+uint8_t log_manager_get_moisture_sample(size_t index);
 
 /**
  * @brief Unified logging macros injecting the dynamic datetime stamp automatically.

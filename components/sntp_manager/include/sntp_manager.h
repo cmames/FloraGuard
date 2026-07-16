@@ -15,3 +15,9 @@ esp_err_t initialize_sntp(void);
  * @return true if daylight hours, false if nighttime or not sync yet.
  */
 bool is_daylight_hours(void);
+
+/**
+ * @brief Get the current localized date and time.
+ * @return const char* Formatted string "YYYY-MM-DD HH:MM:SS" or default placeholder if unsynced.
+ */
+const char* sntp_manager_get_datetime(void);

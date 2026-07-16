@@ -38,8 +38,26 @@ bool is_daylight_hours(void)
         return false;
     }
 
-    LOG_INFO(TAG, "Current localized time: %02d:%02d:%02d", timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
-    
     // Agricultural authorization slot: 08:00 to 19:59
     return (timeinfo.tm_hour >= DAYLIGHT_START_HOUR && timeinfo.tm_hour < DAYLIGHT_END_HOUR);
+}
+
+const char* sntp_manager_get_datetime(void)
+{
+    static char datetime_buf[32];
+    time_t now;
+    struct tm timeinfo;
+    
+    time(&now);
+    localtime_r(&now, &timeinfo);
+
+    // If the system year is lower than 2026, NTP synchronization has not occurred yet
+    if (timeinfo.tm_year < (2026 - 1900)) {
+        return "0000-00-00 00:00:00";
+    }
+
+    // strftime handles tm offsets internally and is optimized to bypass snprintf truncation warnings
+    strftime(datetime_buf, sizeof(datetime_buf), "%Y-%m-%d %H:%M:%S", &timeinfo);
+
+    return datetime_buf;
 }

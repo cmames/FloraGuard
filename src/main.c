@@ -36,6 +36,7 @@ static void automation_task(void *pvParameters)
     LOG_INFO(TAG, "Control loop automation task started.");
 
     while (1) {
+        is_daylight_hours();
         int raw_moisture = soil_moisture_get_raw();
         float moisture_pct = soil_moisture_get_percentage();
 

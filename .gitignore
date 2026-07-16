@@ -5,3 +5,4 @@
 .vscode/ipch
 
 config.ini
+managed_components/

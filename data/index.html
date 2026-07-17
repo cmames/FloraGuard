@@ -96,6 +96,7 @@
             const ctx = canvas.getContext('2d');
             const w = canvas.width;
             const h = canvas.height;
+            let startX = 0;
 
             // Clear previous canvas
             ctx.clearRect(0, 0, w, h);
@@ -104,12 +105,22 @@
             ctx.strokeStyle = '#abbdd4';
             ctx.lineWidth = 0.5;
             for (let l = 1; l < 4; l++) {
+                let text=(l*25)+"%";
                 let yLine = h - (h * (l * 25) / 100);
+                ctx.textBaseline = "middle";
+                ctx.fillText(text,0,yLine);
+                ctx.strokeText(text,0,yLine);
+                let txt=ctx.measureText(text);
                 ctx.beginPath();
                 ctx.moveTo(0, yLine);
                 ctx.lineTo(w, yLine);
                 ctx.stroke();
+                if (startX<(txt.width+4)) startX=txt.width+4;
             }
+            ctx.beginPath();
+            ctx.moveTo(startX, 0);
+            ctx.lineTo(startX, h);
+            ctx.stroke();
 
             if (!history || history.length === 0) return;
 
@@ -120,11 +131,11 @@
             ctx.beginPath();
 
             // Map history on available width
-            const stepX = w / (history.length - 1);
+            const stepX = (w - startX) / (history.length - 1);
 
             history.forEach((rawVal, index) => {
                 const val=rawVal/2.55;
-                const x = index * stepX;
+                const x = index * stepX + startX;
                 const y = h - (h * val / 100);
 
                 if (index === 0) {

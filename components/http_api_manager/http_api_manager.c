@@ -26,15 +26,11 @@ static esp_err_t status_get_handler(httpd_req_t *req)
     bme280_manager_read(&temp, &hum, &press);
     
     // Allocate a buffer safe enough to hold metrics + the 5 formatted log lines
-    const size_t json_buffer_size = MOISTURE_HISTORY_SIZE*4+1024;
-    char *json_response = malloc(json_buffer_size);
-    if (json_response == NULL) {
-        actuator_set_led_blue(true);
-        return ESP_ERR_NO_MEM;
-    }
+    #define JSON_BUFFER_SIZE (MOISTURE_HISTORY_SIZE * 4 + 1024)
+    static char json_response[JSON_BUFFER_SIZE];
     
     // Format core sensor values
-    int written = snprintf(json_response, json_buffer_size,
+    int written = snprintf(json_response, JSON_BUFFER_SIZE,
              "{\"soil\":{\"raw\":%d,\"moisture_pct\":%.2f},"
              "\"environment\":{\"temperature_c\":%.2f,\"humidity_pct\":%.2f,\"pressure_hpa\":%.2f},"
              "\"moisture_history\":[",
@@ -43,39 +39,38 @@ static esp_err_t status_get_handler(httpd_req_t *req)
     // Append the soil moisture history
     for (size_t i = 0; i < MOISTURE_HISTORY_SIZE; i++) {
         const char *separator = (i == MOISTURE_HISTORY_SIZE - 1) ? "" : ",";
-        if (written < json_buffer_size) {
-            written += snprintf(json_response + written, json_buffer_size - written,
+        if (written < JSON_BUFFER_SIZE) {
+            written += snprintf(json_response + written, JSON_BUFFER_SIZE - written,
                                 "%d%s", log_manager_get_moisture_sample(i), separator);
         }
     }
 
     // Format logs array
-    if (written < json_buffer_size) {
-        written += snprintf(json_response + written, json_buffer_size - written, "],\"logs\":[");
+    if (written < JSON_BUFFER_SIZE) {
+        written += snprintf(json_response + written, JSON_BUFFER_SIZE - written, "],\"logs\":[");
     }
 
     // Append the log history strings as a raw JSON array
     size_t log_size = log_manager_get_history_size();
     for (size_t i = 0; i < log_size; i++) {
         const char *line = log_manager_get_log(i);
-        if (line != NULL && written < json_buffer_size) {
+        if (line != NULL && written < JSON_BUFFER_SIZE) {
             // Check if it's the last element to handle the trailing comma cleanly
             const char *separator = (i == log_size - 1) ? "" : ",";
-            written += snprintf(json_response + written, json_buffer_size - written,
+            written += snprintf(json_response + written, JSON_BUFFER_SIZE - written,
                                 "\"%s\"%s", line, separator);
         }
     }
 
     // Close JSON payload
-    if (written < json_buffer_size) {
-        snprintf(json_response + written, json_buffer_size - written, "]}");
+    if (written < JSON_BUFFER_SIZE) {
+        snprintf(json_response + written, JSON_BUFFER_SIZE - written, "]}");
     }
 
     httpd_resp_set_type(req, "application/json");
     httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
     httpd_resp_send(req, json_response, HTTPD_RESP_USE_STRLEN);
     
-    free(json_response);
     actuator_set_led_blue(true);
     
     return ESP_OK;

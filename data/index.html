@@ -23,15 +23,15 @@
             background: white; 
             padding: 24px; 
             border-radius: 12px; 
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05); 
+            box-shadow: 4px 4px 8px rgba(0,0,0,0.1); 
             text-align: left; 
             width: 280px; 
             margin: 15px; 
             border-top: 5px solid #243b53; 
         }
-        .card.soil { border-top-color: #0b69a3; }
-        .card.env { border-top-color: #0f8066; }
-        .card.logs { width: 620px; border-top-color: #486581; }
+        .card.soil { border-image: linear-gradient(75deg, white, #0b69a3) 1; }
+        .card.env { border-image: linear-gradient(75deg, white, #0f8066) 1; }
+        .card.logs { width: 620px; border-image: linear-gradient(75deg, white, #486581) 1; }
         
         h1 { color: #0f2942; font-weight: 700; margin-bottom: 5px; }
         h2 { margin-top: 0; color: #334e68; font-size: 1.3em; }
@@ -59,6 +59,14 @@
         .status-badge.online { background: #d1fae5; color: #065f46; }
         .status-badge.offline { background: #fee2e2; color: #991b1b; }
         .footer { font-size: 0.85em; color: #627d98; }
+
+        .flex-hor-box {
+            display : flex; 
+            flex-direction: row;
+            flex-wrap: nowrap;
+            justify-content: space-between;
+        }
+        #zoom-in, #zoom-out {flex-grow: 1;margin: 4px}
     </style>
 </head>
 <body>
@@ -67,6 +75,10 @@
         <div class="card soil">
             <h2>Humidité du sol</h2>
             <div class="metric"><span>Pourcentage :</span><span id="soil-pct" class="val">-- %</span></div>
+            <div class="flex-hor-box">
+            <button id="zoom-out">-</button>
+            <button id="zoom-in">+</button>
+            </div>
             <canvas id="moisture-chart" width="280" height="60" style="border: 1px solid #e2e8f0; margin-top: 15px; border-radius: 6px; background: #f8fafc;"></canvas>
         </div>
 
@@ -105,7 +117,7 @@
             // Draw background grid (25%, 50%, 75%)
             ctx.strokeStyle = '#abbdd4';
             ctx.lineWidth = 0.5;
-            let steps=h/txt.height;
+            let steps=h/txt.height; 
             if (steps<2) steps=1;
             else if (steps<4) steps=2;
             else if (steps<5) steps=4;
@@ -208,6 +220,16 @@
         // Initial launch and interval cycle binding (5000ms)
         updateDashboard();
         setInterval(updateDashboard, 5000);
+        document.getElementById("zoom-in").addEventListener("click", function() {
+            let canvas=document.getElementById('moisture-chart');
+            canvas.height *= (canvas.height<400)?2:1;
+            updateDashboard();
+        })
+        document.getElementById("zoom-out").addEventListener("click", function() {
+            let canvas=document.getElementById('moisture-chart');
+            canvas.height /= (canvas.height>30)?2:1;
+            updateDashboard();
+        })
     </script>
 </body>
 </html>

@@ -35,6 +35,8 @@ static void automation_task(void *pvParameters)
 {
     LOG_INFO(TAG, "Control loop automation task started.");
     int night_log_cooldown = 0;
+
+
     while (1) {
         int raw_moisture = soil_moisture_get_raw();
         float moisture_pct = soil_moisture_get_percentage();
@@ -82,6 +84,10 @@ static void automation_task(void *pvParameters)
                         int safety_counter = 0;
                         const int MAX_WATERING_ATTEMPTS = 10;
 
+                        float previous_moisture = moisture_pct;
+                        float last_step_gain = 0.0f;
+                        float predicted_next_moisture = 0.0f;
+
                         do {
                             watering(moisture_pct);
                             if (++safety_counter >= MAX_WATERING_ATTEMPTS) {
@@ -90,8 +96,21 @@ static void automation_task(void *pvParameters)
                                 actuator_set_pump(false);
                             }
                             moisture_pct = soil_moisture_get_percentage();
-                        } while ((WATER_UNTIL_SATURATION == 1) && (!moisture_sensor_failure_tripped) && (moisture_pct < SOIL_MOISTURE_CRITICAL_HIGH));
-                        LOG_INFO(TAG, "Watering %d times", safety_counter);
+                            last_step_gain = moisture_pct - previous_moisture;
+                            if (last_step_gain < 0.0f) {
+                                last_step_gain = 0.0f; // Handle sensor noise if moisture reading slightly drops
+                            }
+                            predicted_next_moisture = moisture_pct + last_step_gain;
+                            previous_moisture = moisture_pct;
+                            LOG_INFO(TAG, "Step %d: current=%.2f%%, gain=+%.2f%%, predicted_next=%.2f%%", 
+                                safety_counter, moisture_pct, last_step_gain, predicted_next_moisture);
+                        } while (
+                            (WATER_UNTIL_SATURATION == 1) && 
+                            (!moisture_sensor_failure_tripped) && 
+                            (moisture_pct < SOIL_MOISTURE_CRITICAL_HIGH) && 
+                            (predicted_next_moisture < SOIL_MOISTURE_CRITICAL_HIGH)
+                        );
+                        LOG_INFO(TAG, "Watering completed with %d cycles", safety_counter);
 
                     } else {
                         actuator_set_pump(false);

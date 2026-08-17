@@ -28,7 +28,7 @@ static void watering(float val) {
     vTaskDelay(pdMS_TO_TICKS(IRRIGATION_PUMP_ON_MS)); // watering
     actuator_set_pump(false);
     LOG_INFO(TAG, "- Wait %d seconds for the water to soak into the soil", (IRRIGATION_PUMP_OFF_MS/1000));
-    vTaskDelay(pdMS_TO_TICKS(IRRIGATION_PUMP_OFF_MS)); // infiltration
+    vTaskDelay(pdMS_TO_TICKS(IRRIGATION_PUMP_OFF_MS-IRRIGATION_PUMP_ON_MS)); // infiltration
 }
 
 static void automation_task(void *pvParameters)

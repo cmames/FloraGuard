@@ -29,10 +29,10 @@ The system utilizes an **ESP32 DevKitC V4** micro-controller. Due to layout rest
 | **Capacitive Moisture Sensor v1.2** | GPIO34 | Analog Input | Mapped to ADC1 Channel 6 |
 | **BME280 SDA** | GPIO25 | I2C Bidirectional | Custom routed Master SDA line |
 | **BME280 SCL** | GPIO26 | I2C Bidirectional | Custom routed Master SCL line |
-| **Water Pump (MOSFET/Relay)** | GPIO27 | Digital Output | High-isolation push-pull output |
+| **Water Pump (MOSFET/Relay)** | GPIO13 | Digital Output | High-isolation push-pull output |
 | **LED Blue** | GPIO14 | Digital Output | Network status and HTTP request heartbeat |
 | **LED Yellow** | GPIO12 | Digital Output | Soil moisture warning indicator (Dry state) |
-| **LED Red** | GPIO13 | Digital Output | Critical error / sensor failure / flooded state |
+| **LED Red** | GPIO27 | Digital Output | Critical error / sensor failure / flooded state |
 
 ### Hardware Component - 3D Printing
 The custom sub-surface delivery nozzle is located at the root of the project: `stl/Watering_stake.stl`.
